@@ -59,6 +59,43 @@ class _TaskListScreenState extends State<TaskListScreen> {
     _taskController.clear();
   }
 
+  Future<void> _showAddSubtaskDialog(Task task) async {
+    final subtaskController = TextEditingController();
+
+    final subtaskTitle = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Subtask'),
+          content: TextField(
+            controller: subtaskController,
+            decoration: const InputDecoration(
+              hintText: 'Enter subtask title',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, subtaskController.text.trim());
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+
+    subtaskController.dispose();
+
+    if (subtaskTitle != null && subtaskTitle.isNotEmpty) {
+      await _taskService.addSubtask(task, subtaskTitle);
+    }
+  }
+
   Future<void> _confirmDelete(String taskId) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -144,24 +181,87 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   itemBuilder: (context, index) {
                     final task = tasks[index];
 
-                    return ListTile(
-                      leading: Checkbox(
-                        value: task.isCompleted,
-                        onChanged: (_) async {
-                          await _taskService.toggleTask(task);
-                        },
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
                       ),
-                      title: Text(
-                        task.title,
-                        style: TextStyle(
-                          decoration: task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
+                      child: ExpansionTile(
+                        leading: Checkbox(
+                          value: task.isCompleted,
+                          onChanged: (_) async {
+                            await _taskService.toggleTask(task);
+                          },
                         ),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _confirmDelete(task.id),
+                        title: Text(
+                          task.title,
+                          style: TextStyle(
+                            decoration: task.isCompleted
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _confirmDelete(task.id),
+                        ),
+                        children: [
+                          if (task.subtasks.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(bottom: 12),
+                              child: Text('No subtasks yet'),
+                            )
+                          else
+                            ...List.generate(task.subtasks.length, (subtaskIndex) {
+                              final subtask = task.subtasks[subtaskIndex];
+                              final isSubtaskCompleted =
+                                  subtask['isCompleted'] ?? false;
+
+                              return ListTile(
+                                leading: Checkbox(
+                                  value: isSubtaskCompleted,
+                                  onChanged: (_) async {
+                                    await _taskService.toggleSubtask(
+                                      task,
+                                      subtaskIndex,
+                                    );
+                                  },
+                                ),
+                                title: Text(
+                                  subtask['title'] ?? '',
+                                  style: TextStyle(
+                                    decoration: isSubtaskCompleted
+                                        ? TextDecoration.lineThrough
+                                        : TextDecoration.none,
+                                  ),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () async {
+                                    await _taskService.deleteSubtask(
+                                      task,
+                                      subtaskIndex,
+                                    );
+                                  },
+                                ),
+                              );
+                            }),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              bottom: 12,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () => _showAddSubtaskDialog(task),
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Subtask'),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
