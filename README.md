@@ -27,8 +27,6 @@ A Flutter task management app built with Firebase Firestore for real-time cloud 
 ### 1. Search / Filter
 I added a search bar that filters tasks by title in real time. This makes the app easier to use when the task list gets longer because users can quickly find the specific task they want instead of scrolling through the full list.
 
-### 2. Dark Mode Support
-I implemented `ThemeMode.system` so the app follows the device’s light or dark theme automatically. I chose this because it improves the overall user experience without adding extra complexity to the interface.
 
 ### 3. Swipe-to-Delete
 I also added swipe-to-delete for task items as an extra polish feature. This gives users a faster way to remove tasks while still keeping a confirmation step to reduce accidental deletion.
